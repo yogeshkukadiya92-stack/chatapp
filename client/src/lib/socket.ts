@@ -1,6 +1,6 @@
 import { io, type Socket } from "socket.io-client";
 
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || "http://localhost:3000";
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || window.location.origin;
 
 export function createChatSocket(token: string): Socket {
   return io(SOCKET_URL, {

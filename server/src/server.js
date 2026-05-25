@@ -2,7 +2,9 @@ require("dotenv").config();
 
 const cors = require("cors");
 const express = require("express");
+const fs = require("fs");
 const http = require("http");
+const path = require("path");
 const { Server } = require("socket.io");
 
 const chatAdminRoutes = require("./routes/chat-admin.routes");
@@ -58,6 +60,20 @@ app.use("/api/chat", requireChatAuth, chatMessageRoutes);
 app.use("/api/chat/calls", requireChatAuth, chatCallRoutes);
 app.use("/api/chat/media", requireChatAuth, chatMediaRoutes);
 app.use("/api/chat/admin", requireChatAuth, requireChatAdmin, chatAdminRoutes);
+
+const clientDistPath = path.resolve(__dirname, "../../client/dist");
+
+if (fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+  app.get("*", (req, res, next) => {
+    if (req.path.startsWith("/api")) {
+      return next();
+    }
+
+    return res.sendFile(path.join(clientDistPath, "index.html"));
+  });
+}
+
 app.use(notFoundHandler);
 app.use(errorHandler);
 

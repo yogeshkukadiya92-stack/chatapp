@@ -106,6 +106,38 @@ EXPO_PUBLIC_API_BASE_URL=http://localhost:3000/api
 EXPO_PUBLIC_SOCKET_URL=http://localhost:3000
 ```
 
+## Railway Deployment
+
+This repo is prepared for a single Railway service. Railway builds the Vite web client, then starts the Express server. In production, Express serves both the REST/Socket.IO backend and the built web app from `client/dist`.
+
+1. Push the repo to GitHub.
+2. In Railway, create a new project from the GitHub repo.
+3. Railway will read `railway.json`:
+
+   ```bash
+   Build command: npm run build
+   Start command: npm start
+   Healthcheck: /health
+   ```
+
+4. Add Railway environment variables:
+
+   ```bash
+   NODE_ENV=production
+   JWT_SECRET=replace-with-a-strong-secret
+   CLIENT_URL=https://your-railway-domain.up.railway.app
+   SUPABASE_URL=
+   SUPABASE_SERVICE_ROLE_KEY=
+   ```
+
+   Railway provides `PORT` automatically, so do not hardcode it unless Railway specifically asks for it.
+
+5. After Railway gives the public domain, update `CLIENT_URL` to that exact domain and redeploy. This lets Socket.IO accept the production browser origin.
+
+For Railway single-service hosting, the web client does not need `VITE_API_BASE_URL` or `VITE_SOCKET_URL`; it defaults to same-origin `/api` and the current browser origin. Only set those Vite variables if the web client is hosted separately from the API.
+
+Without Supabase variables, Railway can still run in local demo mode with in-memory users, but demo data resets whenever the service restarts. Configure Supabase for persistent production testing.
+
 ## API Endpoints
 
 Auth:

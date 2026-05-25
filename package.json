@@ -13,6 +13,10 @@
     "dev:client": "npm run dev --workspace client",
     "dev:mobile": "npm run start --workspace mobile",
     "build": "npm run build --workspace client",
+    "start": "npm run start --workspace server",
     "check": "npm run check --workspace server && npm run build --workspace client"
+  },
+  "engines": {
+    "node": ">=20"
   }
 }
