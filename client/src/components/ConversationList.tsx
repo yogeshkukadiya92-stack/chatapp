@@ -1,5 +1,5 @@
 import { FormEvent, useMemo, useState } from "react";
-import { LogOut, Search, Settings, Shield, UserPlus } from "lucide-react";
+import { Lock, LogOut, Search, Settings, Shield, UserPlus } from "lucide-react";
 import type { ChatUser, Conversation } from "../types";
 import { Avatar } from "./Avatar";
 import { formatTime, getConversationSubtitle, getConversationTitle } from "../lib/chat";
@@ -10,6 +10,7 @@ type ConversationListProps = {
   selectedId?: string;
   loading: boolean;
   contacts: ChatUser[];
+  lockedConversationIds?: string[];
   onSelect: (conversation: Conversation) => void;
   onStartDirect: (phone: string) => Promise<void>;
   onCreateGroup: (title: string, participantIds: string[]) => Promise<void>;
@@ -24,6 +25,7 @@ export function ConversationList({
   selectedId,
   loading,
   contacts,
+  lockedConversationIds = [],
   onSelect,
   onStartDirect,
   onCreateGroup,
@@ -138,8 +140,20 @@ export function ConversationList({
               online={conversation.type === "direct" ? conversation.participants?.some((p) => p.user_id !== currentUser.id && p.user.is_online) : undefined}
             />
             <span className="conversation-copy">
-              <strong>{getConversationTitle(conversation, currentUser)}</strong>
-              <small>{getConversationSubtitle(conversation, currentUser)}</small>
+              <strong>
+                {lockedConversationIds.includes(conversation.id) ? (
+                  <>
+                    <Lock size={13} /> Locked chat
+                  </>
+                ) : (
+                  getConversationTitle(conversation, currentUser)
+                )}
+              </strong>
+              <small>
+                {lockedConversationIds.includes(conversation.id)
+                  ? "PIN required to view messages"
+                  : getConversationSubtitle(conversation, currentUser)}
+              </small>
             </span>
             <time>{formatTime(conversation.last_message_at || conversation.updated_at || conversation.created_at)}</time>
           </button>

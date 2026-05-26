@@ -1,4 +1,4 @@
-import { Bell, Phone, Search, Video } from "lucide-react";
+import { Bell, Lock, Phone, Search, Unlock, Video } from "lucide-react";
 import type { ChatUser, Conversation } from "../types";
 import { getConversationPeer, getConversationSubtitle, getConversationTitle } from "../lib/chat";
 import { Avatar } from "./Avatar";
@@ -10,6 +10,8 @@ type ChatHeaderProps = {
   onSearchChange: (value: string) => void;
   onEnableNotifications: () => void;
   onCall: (type: "voice" | "video") => void;
+  locked?: boolean;
+  onToggleLock: () => void;
 };
 
 export function ChatHeader({
@@ -18,7 +20,9 @@ export function ChatHeader({
   searchQuery,
   onSearchChange,
   onEnableNotifications,
-  onCall
+  onCall,
+  locked,
+  onToggleLock
 }: ChatHeaderProps) {
   const peer = getConversationPeer(conversation, currentUser);
 
@@ -47,6 +51,14 @@ export function ChatHeader({
         </div>
         <button className="icon-button" onClick={onEnableNotifications} aria-label="Enable notifications">
           <Bell size={18} />
+        </button>
+        <button
+          className={locked ? "icon-button lock-active" : "icon-button"}
+          onClick={onToggleLock}
+          aria-label={locked ? "Unlock chat privacy" : "Lock chat privacy"}
+          title={locked ? "Unlock chat" : "Lock chat"}
+        >
+          {locked ? <Lock size={18} /> : <Unlock size={18} />}
         </button>
         <button className="icon-button" onClick={() => onCall("voice")} aria-label="Start voice call">
           <Phone size={18} />

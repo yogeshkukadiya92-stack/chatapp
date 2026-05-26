@@ -13,8 +13,11 @@ import { ProfilePanel } from "./components/ProfilePanel";
 import { AdminPanel } from "./components/AdminPanel";
 import { IncomingCallModal } from "./components/IncomingCallModal";
 import { CallModal } from "./components/CallModal";
+import { ChatLockOverlay } from "./components/ChatLockOverlay";
 
 type OpenPanel = "profile" | "admin" | null;
+const LOCKED_CHATS_KEY = "chat_platform_locked_chats";
+const CHAT_PIN_KEY = "chat_platform_lock_pin";
 
 export default function App() {
   const [authStep, setAuthStep] = useState<"phone" | "otp">("phone");
@@ -35,6 +38,10 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [incomingCall, setIncomingCall] = useState<CallState | null>(null);
   const [activeCall, setActiveCall] = useState<CallState | null>(null);
+  const [lockedConversationIds, setLockedConversationIds] = useState<string[]>(() => readLockedConversationIds());
+  const [unlockedConversationIds, setUnlockedConversationIds] = useState<string[]>([]);
+  const [hasChatPin, setHasChatPin] = useState(() => Boolean(localStorage.getItem(CHAT_PIN_KEY)));
+  const [lockError, setLockError] = useState<string | null>(null);
   const socketRef = useRef<Socket | null>(null);
   const selectedConversationIdRef = useRef<string | null>(null);
   const currentUserRef = useRef<ChatUser | null>(null);
@@ -514,6 +521,7 @@ export default function App() {
     setMessageSearch("");
     setReplyTo(null);
     setEditingMessage(null);
+    setUnlockedConversationIds([]);
     setAuthStep("phone");
   }
 
@@ -542,6 +550,64 @@ export default function App() {
   const incomingCaller =
     selectedConversation?.participants?.find((participant) => participant.user_id === incomingCall?.fromUserId)?.user.name ||
     "Contact";
+  const selectedConversationTitle = selectedConversation
+    ? getConversationTitle(selectedConversation, currentUser)
+    : "Selected chat";
+  const selectedConversationLocked = Boolean(
+    selectedConversation &&
+      lockedConversationIds.includes(selectedConversation.id) &&
+      !unlockedConversationIds.includes(selectedConversation.id)
+  );
+
+  function persistLockedConversationIds(nextIds: string[]) {
+    setLockedConversationIds(nextIds);
+    localStorage.setItem(LOCKED_CHATS_KEY, JSON.stringify(nextIds));
+  }
+
+  function setChatPin(pin: string) {
+    localStorage.setItem(CHAT_PIN_KEY, pin);
+    setHasChatPin(true);
+    setLockError(null);
+    if (selectedConversation) {
+      persistLockedConversationIds([...new Set([...lockedConversationIds, selectedConversation.id])]);
+      setUnlockedConversationIds((previous) => [...new Set([...previous, selectedConversation.id])]);
+    }
+    return true;
+  }
+
+  function unlockChat(pin: string) {
+    if (pin !== localStorage.getItem(CHAT_PIN_KEY)) {
+      setLockError("Wrong PIN. Try again.");
+      return false;
+    }
+
+    setLockError(null);
+    if (selectedConversation) {
+      setUnlockedConversationIds((previous) => [...new Set([...previous, selectedConversation.id])]);
+    }
+    return true;
+  }
+
+  function toggleChatLock() {
+    if (!selectedConversation) {
+      return;
+    }
+
+    setLockError(null);
+
+    if (!hasChatPin) {
+      persistLockedConversationIds([...new Set([...lockedConversationIds, selectedConversation.id])]);
+      return;
+    }
+
+    if (lockedConversationIds.includes(selectedConversation.id)) {
+      persistLockedConversationIds(lockedConversationIds.filter((id) => id !== selectedConversation.id));
+      setUnlockedConversationIds(unlockedConversationIds.filter((id) => id !== selectedConversation.id));
+      return;
+    }
+
+    persistLockedConversationIds([...lockedConversationIds, selectedConversation.id]);
+  }
 
   return (
     <main className="app-shell">
@@ -551,6 +617,7 @@ export default function App() {
         selectedId={selectedConversation?.id}
         loading={loading}
         contacts={contacts}
+        lockedConversationIds={lockedConversationIds}
         onSelect={selectConversation}
         onStartDirect={startDirect}
         onCreateGroup={createGroup}
@@ -569,8 +636,29 @@ export default function App() {
               onSearchChange={setMessageSearch}
               onEnableNotifications={enableNotifications}
               onCall={startCall}
+              locked={lockedConversationIds.includes(selectedConversation.id)}
+              onToggleLock={toggleChatLock}
             />
-            {conversationLoading ? (
+            {!hasChatPin && lockedConversationIds.includes(selectedConversation.id) ? (
+              <ChatLockOverlay
+                title={selectedConversationTitle}
+                hasPin={false}
+                error={lockError}
+                onSetPin={setChatPin}
+                onUnlock={unlockChat}
+                onCancel={() =>
+                  persistLockedConversationIds(lockedConversationIds.filter((id) => id !== selectedConversation.id))
+                }
+              />
+            ) : selectedConversationLocked ? (
+              <ChatLockOverlay
+                title={selectedConversationTitle}
+                hasPin={hasChatPin}
+                error={lockError}
+                onSetPin={setChatPin}
+                onUnlock={unlockChat}
+              />
+            ) : conversationLoading ? (
               <div className="empty-chat">
                 <h3>Loading chat</h3>
               </div>
@@ -592,19 +680,21 @@ export default function App() {
                 onDelete={deleteMessage}
               />
             )}
-            <MessageInput
-              disabled={conversationLoading}
-              replyTo={replyTo}
-              editing={editingMessage}
-              onCancelContext={() => {
-                setReplyTo(null);
-                setEditingMessage(null);
-              }}
-              onSend={sendMessage}
-              onMediaPlaceholder={sendMediaPlaceholder}
-              onTypingStart={() => emitTyping(true)}
-              onTypingStop={() => emitTyping(false)}
-            />
+            {!selectedConversationLocked && !(!hasChatPin && lockedConversationIds.includes(selectedConversation.id)) ? (
+              <MessageInput
+                disabled={conversationLoading}
+                replyTo={replyTo}
+                editing={editingMessage}
+                onCancelContext={() => {
+                  setReplyTo(null);
+                  setEditingMessage(null);
+                }}
+                onSend={sendMessage}
+                onMediaPlaceholder={sendMediaPlaceholder}
+                onTypingStart={() => emitTyping(true)}
+                onTypingStop={() => emitTyping(false)}
+              />
+            ) : null}
           </>
         ) : (
           <div className="empty-chat full">
@@ -634,6 +724,16 @@ export default function App() {
       ) : null}
     </main>
   );
+}
+
+function readLockedConversationIds() {
+  try {
+    const value = localStorage.getItem(LOCKED_CHATS_KEY);
+    const parsed = value ? JSON.parse(value) : [];
+    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === "string") : [];
+  } catch {
+    return [];
+  }
 }
 
 function appendMessage(messages: Message[], message: Message) {
