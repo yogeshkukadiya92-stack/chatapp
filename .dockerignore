@@ -1,0 +1,11 @@
+node_modules
+client/dist
+mobile/.expo
+mobile/node_modules
+server/node_modules
+.git
+.env
+server/.env
+client/.env
+mobile/.env
+*.log

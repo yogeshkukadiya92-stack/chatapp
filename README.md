@@ -108,14 +108,14 @@ EXPO_PUBLIC_SOCKET_URL=http://localhost:3000
 
 ## Railway Deployment
 
-This repo is prepared for a single Railway service. Railway builds the Vite web client, then starts the Express server. In production, Express serves both the REST/Socket.IO backend and the built web app from `client/dist`.
+This repo is prepared for a single Railway service. Railway uses the included `Dockerfile` to build the Vite web client, then starts the Express server. In production, Express serves both the REST/Socket.IO backend and the built web app from `client/dist`.
 
 1. Push the repo to GitHub.
 2. In Railway, create a new project from the GitHub repo.
-3. Railway will read `railway.json`:
+3. Railway will read `railway.json` and use Docker:
 
    ```bash
-   Build command: npm run build
+   Builder: DOCKERFILE
    Start command: npm start
    Healthcheck: /health
    ```
