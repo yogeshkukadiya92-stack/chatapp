@@ -1,4 +1,4 @@
-import { Bell, Lock, Phone, Search, Unlock, Video } from "lucide-react";
+import { ArrowLeft, Bell, Lock, Phone, Search, Unlock, Video } from "lucide-react";
 import type { ChatUser, Conversation } from "../types";
 import { getConversationPeer, getConversationSubtitle, getConversationTitle } from "../lib/chat";
 import { Avatar } from "./Avatar";
@@ -12,6 +12,7 @@ type ChatHeaderProps = {
   onCall: (type: "voice" | "video") => void;
   locked?: boolean;
   onToggleLock: () => void;
+  onBack?: () => void;
 };
 
 export function ChatHeader({
@@ -22,13 +23,19 @@ export function ChatHeader({
   onEnableNotifications,
   onCall,
   locked,
-  onToggleLock
+  onToggleLock,
+  onBack
 }: ChatHeaderProps) {
   const peer = getConversationPeer(conversation, currentUser);
 
   return (
     <header className="chat-header">
       <div className="chat-title-row">
+        {onBack ? (
+          <button className="icon-button mobile-back-button" onClick={onBack} aria-label="Back to chats">
+            <ArrowLeft size={20} />
+          </button>
+        ) : null}
         <Avatar
           name={getConversationTitle(conversation, currentUser)}
           image={conversation.avatar_url || peer?.avatar_url}

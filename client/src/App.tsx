@@ -614,7 +614,7 @@ export default function App() {
   }
 
   return (
-    <main className="app-shell">
+    <main className={selectedConversation ? "app-shell chat-open" : "app-shell list-open"}>
       <ConversationList
         conversations={conversations}
         currentUser={currentUser}
@@ -642,6 +642,13 @@ export default function App() {
               onCall={startCall}
               locked={lockedConversationIds.includes(selectedConversation.id)}
               onToggleLock={toggleChatLock}
+              onBack={() => {
+                setSelectedConversation(null);
+                setMessages([]);
+                setMessageSearch("");
+                setReplyTo(null);
+                setEditingMessage(null);
+              }}
             />
             {!hasChatPin && lockedConversationIds.includes(selectedConversation.id) ? (
               <ChatLockOverlay
