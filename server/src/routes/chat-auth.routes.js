@@ -25,7 +25,7 @@ router.get(
   "/me",
   requireChatAuth,
   asyncHandler(async (req, res) => {
-    const user = await chatAuthService.getCurrentUser(req.chatUser.sub);
+    const user = await chatAuthService.getCurrentUser(req.chatUser.sub, req.chatUser.phone);
     res.json({ user });
   })
 );

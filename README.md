@@ -21,7 +21,7 @@ This repository is a Phase 1 MVP foundation for a cross-platform real-time chat 
 
 ## Local Demo Features
 
-When Supabase is not configured, the backend now runs a local in-memory demo mode with preloaded users `9825344428` and `7990979942`.
+When Supabase is not configured, the backend runs a local demo mode with preloaded users `9825344428` and `7990979942`.
 
 Available in demo mode:
 
@@ -32,7 +32,7 @@ Available in demo mode:
 - Image/video/document/audio placeholder messages.
 - Chat search, emoji shortcuts, browser notification permission prompt, and call signaling UI.
 
-Demo mode resets when the backend process restarts.
+Demo users, conversations, and messages are stored in `server/.data/chat-demo-store.json`, so local login and chats survive backend restarts. Delete that file only when you want to clear local demo chat history.
 
 ## Setup
 
@@ -149,7 +149,7 @@ This repo is prepared for a single Railway service. Railway uses the included `D
 
 For Railway single-service hosting, the web client does not need `VITE_API_BASE_URL` or `VITE_SOCKET_URL`; it defaults to same-origin `/api` and the current browser origin. Only set those Vite variables if the web client is hosted separately from the API.
 
-Without Supabase variables, Railway can still run in local demo mode with in-memory users, but demo data resets whenever the service restarts. Configure Supabase for persistent production testing.
+Without Supabase variables, Railway can still run in local demo mode, but Railway filesystems are ephemeral across deployments. Configure Supabase for persistent production testing.
 
 ## API Endpoints
 

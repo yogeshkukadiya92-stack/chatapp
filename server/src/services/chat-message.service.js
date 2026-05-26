@@ -9,6 +9,7 @@ const {
   getConversationParticipantIds
 } = require("./chat-conversation.service");
 const { isBlockedBetween } = require("./chat-user.service");
+const { loadDemoStore, saveDemoStore } = require("./demo-store");
 
 const messageSelect = `
   *,
@@ -41,7 +42,8 @@ const statusRank = {
   delivered: 2,
   read: 3
 };
-const demoMessages = new Map();
+const demoStore = loadDemoStore();
+const demoMessages = new Map(Object.entries(demoStore.messages));
 
 async function listMessages(userId, conversationId, options = {}) {
   if (!isSupabaseConfigured()) {
@@ -113,6 +115,7 @@ async function createMessage(userId, conversationId, payload) {
     const rows = demoMessages.get(conversationId) || [];
     rows.push(message);
     demoMessages.set(conversationId, rows);
+    persistDemoMessages();
     return message;
   }
 
@@ -204,6 +207,7 @@ async function updateMessage(userId, messageId, payload) {
         updated_at: new Date().toISOString()
       };
       demoMessages.set(conversationId, rows);
+      persistDemoMessages();
       return rows[index];
     }
 
@@ -260,6 +264,7 @@ async function deleteMessage(userId, messageId, payload = {}) {
         updated_at: new Date().toISOString()
       };
       demoMessages.set(conversationId, rows);
+      persistDemoMessages();
       return rows[index];
     }
 
@@ -461,3 +466,9 @@ module.exports = {
   markRead,
   updateMessage
 };
+
+function persistDemoMessages() {
+  const store = loadDemoStore();
+  store.messages = Object.fromEntries(demoMessages.entries());
+  saveDemoStore(store);
+}

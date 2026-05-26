@@ -5,8 +5,10 @@ const { createHttpError } = require("../utils/errors");
 const { parseWithSchema, phoneSchema, uuidSchema } = require("../utils/validation");
 const { getUserByPhone, isBlockedBetween } = require("./chat-user.service");
 const { getDemoUserById } = require("./chat-auth.service");
+const { loadDemoStore, saveDemoStore } = require("./demo-store");
 
-const demoConversations = new Map();
+const demoStore = loadDemoStore();
+const demoConversations = new Map(demoStore.conversations.map((conversation) => [conversation.id, conversation]));
 
 const participantSelect = `
   id,
@@ -201,6 +203,7 @@ async function createDirectConversation(userId, payload) {
       conversation_id: conversation.id
     }));
     demoConversations.set(conversation.id, conversation);
+    persistDemoConversations();
     return conversation;
   }
 
@@ -280,6 +283,7 @@ async function createGroupConversation(userId, payload) {
       conversation_id: conversation.id
     }));
     demoConversations.set(conversation.id, conversation);
+    persistDemoConversations();
     return conversation;
   }
 
@@ -527,3 +531,9 @@ module.exports = {
   removeParticipant,
   updateConversation
 };
+
+function persistDemoConversations() {
+  const store = loadDemoStore();
+  store.conversations = Array.from(demoConversations.values());
+  saveDemoStore(store);
+}

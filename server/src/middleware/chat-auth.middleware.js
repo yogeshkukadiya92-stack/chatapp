@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const { loadDemoStore } = require("../services/demo-store");
 const { createHttpError } = require("../utils/errors");
 
 function getJwtSecret() {
@@ -48,11 +49,31 @@ function requireChatAuth(req, res, next) {
   }
 
   try {
-    req.chatUser = verifyChatToken(token);
+    req.chatUser = normalizeDemoTokenPayload(verifyChatToken(token));
     next();
   } catch (error) {
     next(error);
   }
+}
+
+function normalizeDemoTokenPayload(payload) {
+  if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return payload;
+  }
+
+  if (!payload.phone) {
+    return payload;
+  }
+
+  const user = loadDemoStore().users.find((entry) => entry.phone === payload.phone);
+
+  return user
+    ? {
+        ...payload,
+        sub: user.id,
+        role: user.role || payload.role || "user"
+      }
+    : payload;
 }
 
 function requireChatAdmin(req, res, next) {

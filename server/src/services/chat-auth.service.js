@@ -4,12 +4,14 @@ const { getSupabase, isSupabaseConfigured } = require("../config/supabase");
 const { signChatToken } = require("../middleware/chat-auth.middleware");
 const { createHttpError } = require("../utils/errors");
 const { normalizePhone, parseWithSchema, phoneSchema } = require("../utils/validation");
+const { loadDemoStore, saveDemoStore } = require("./demo-store");
 
 const otpStore = new Map();
 const defaultOtp = "123456";
 const otpTtlMs = 5 * 60 * 1000;
 const authModeSchema = z.enum(["signin", "signup"]);
-const mockUsers = new Map();
+const demoStore = loadDemoStore();
+const mockUsers = new Map(demoStore.users.map((user) => [user.phone, user]));
 
 seedMockUsers();
 
@@ -139,6 +141,7 @@ async function updateLoginPresence(userId) {
       updated_at: new Date().toISOString()
     };
     mockUsers.set(user.phone, updated);
+    persistMockUsers();
     return updated;
   }
 
@@ -176,6 +179,7 @@ async function createChatUser(phone, name) {
       updated_at: now
     };
     mockUsers.set(phone, created);
+    persistMockUsers();
     return created;
   }
 
@@ -197,9 +201,11 @@ async function createChatUser(phone, name) {
   return data;
 }
 
-async function getCurrentUser(userId) {
+async function getCurrentUser(userId, phoneFromToken) {
   if (!isSupabaseConfigured()) {
-    const user = Array.from(mockUsers.values()).find((entry) => entry.id === userId);
+    const user =
+      Array.from(mockUsers.values()).find((entry) => entry.id === userId) ||
+      (phoneFromToken ? mockUsers.get(normalizePhone(phoneFromToken)) : null);
 
     if (!user) {
       throw createHttpError(404, "Chat user not found");
@@ -229,14 +235,26 @@ async function getCurrentUser(userId) {
 function seedMockUsers() {
   const now = new Date().toISOString();
   const users = [
-    { phone: "9825344428", name: "User 4428" },
-    { phone: "7990979942", name: "User 9942" }
+    {
+      id: "11111111-1111-4111-8111-000000004428",
+      phone: "9825344428",
+      name: "User 4428"
+    },
+    {
+      id: "11111111-1111-4111-8111-000000009942",
+      phone: "7990979942",
+      name: "User 9942"
+    }
   ];
 
   for (const user of users) {
     const phone = normalizePhone(user.phone);
+    if (mockUsers.has(phone)) {
+      continue;
+    }
+
     mockUsers.set(phone, {
-      id: crypto.randomUUID(),
+      id: user.id,
       phone,
       name: user.name,
       avatar_url: null,
@@ -248,6 +266,8 @@ function seedMockUsers() {
       updated_at: now
     });
   }
+
+  persistMockUsers();
 }
 
 module.exports = {
@@ -270,4 +290,10 @@ function getDemoUserById(userId) {
 
 function getDemoUsers() {
   return Array.from(mockUsers.values());
+}
+
+function persistMockUsers() {
+  const store = loadDemoStore();
+  store.users = Array.from(mockUsers.values());
+  saveDemoStore(store);
 }
