@@ -16,7 +16,7 @@ This repository is a Phase 1 MVP foundation for a cross-platform real-time chat 
 - Sign in requires an existing `chat_users` row. Sign up creates a new profile after OTP verification and requires a display name.
 - End-to-end encryption is not implemented in Phase 1.
 - Push notifications are not implemented yet. Add FCM/APNs in Phase 2.
-- Media upload endpoints are placeholders unless Supabase Storage is configured.
+- Media upload currently stores demo attachments in backend memory and returns preview URLs. Use Supabase Storage before production so files survive restarts.
 - Voice/video calling includes WebRTC signaling foundations. TURN/STUN hardening and production-grade media flows are Phase 2 work.
 
 ## Local Demo Features

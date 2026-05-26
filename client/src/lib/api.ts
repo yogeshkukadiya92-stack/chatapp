@@ -37,6 +37,34 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return data as T;
 }
 
+function readFileAsBase64(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Could not read attachment"));
+    reader.onload = () => {
+      const value = String(reader.result || "");
+      resolve(value.includes(",") ? value.split(",")[1] : value);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+export function getMediaTypeFromFile(file: File): "image" | "video" | "document" | "audio" {
+  if (file.type.startsWith("image/")) {
+    return "image";
+  }
+
+  if (file.type.startsWith("video/")) {
+    return "video";
+  }
+
+  if (file.type.startsWith("audio/")) {
+    return "audio";
+  }
+
+  return "document";
+}
+
 export const api = {
   requestOtp(phone: string, mode: AuthMode) {
     return request<{ phone: string; mode: AuthMode; development_otp?: string }>("/chat-auth/request-otp", {
@@ -122,15 +150,29 @@ export const api = {
       body: JSON.stringify({ deleted_for_everyone: true })
     });
   },
-  createMediaPlaceholder(payload: {
-    file_name: string;
-    mime_type: string;
-    size: number;
-    type: "image" | "video" | "document" | "audio";
-  }) {
-    return request<{ media: { id: string; status: string } }>("/chat/media/upload", {
+  async uploadMedia(file: File) {
+    const type = getMediaTypeFromFile(file);
+    const dataBase64 = await readFileAsBase64(file);
+
+    return request<{
+      media: {
+        id: string;
+        file_name: string;
+        mime_type: string;
+        size: number;
+        type: "image" | "video" | "document" | "audio";
+        public_url: string;
+        status: string;
+      };
+    }>("/chat/media/upload", {
       method: "POST",
-      body: JSON.stringify(payload)
+      body: JSON.stringify({
+        file_name: file.name || `attachment-${Date.now()}`,
+        mime_type: file.type || "application/octet-stream",
+        size: file.size,
+        type,
+        data_base64: dataBase64
+      })
     });
   },
   markDelivered(messageId: string) {

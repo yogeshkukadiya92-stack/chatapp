@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { Paperclip, Send, Smile, X } from "lucide-react";
+import { Camera, FileAudio, FileText, Image, Paperclip, Send, Smile, Video, X } from "lucide-react";
 import type { Message } from "../types";
 
 type MessageInputProps = {
@@ -8,7 +8,7 @@ type MessageInputProps = {
   editing?: Message | null;
   onCancelContext: () => void;
   onSend: (body: string) => Promise<void>;
-  onMediaPlaceholder: (type: "image" | "video" | "document" | "audio") => Promise<void>;
+  onFilesSelected: (files: File[]) => Promise<void>;
   onTypingStart: () => void;
   onTypingStop: () => void;
 };
@@ -19,13 +19,14 @@ export function MessageInput({
   editing,
   onCancelContext,
   onSend,
-  onMediaPlaceholder,
+  onFilesSelected,
   onTypingStart,
   onTypingStop
 }: MessageInputProps) {
   const [body, setBody] = useState("");
   const [showMediaMenu, setShowMediaMenu] = useState(false);
   const [showEmojiMenu, setShowEmojiMenu] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const typingTimeout = useRef<number | null>(null);
 
   useEffect(() => {
@@ -64,6 +65,30 @@ export function MessageInput({
     typingTimeout.current = window.setTimeout(onTypingStop, 1200);
   }
 
+  async function handleFiles(files: FileList | null) {
+    const selectedFiles = Array.from(files || []);
+
+    if (!selectedFiles.length) {
+      return;
+    }
+
+    setShowMediaMenu(false);
+    await onFilesSelected(selectedFiles);
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
+
+  function openFilePicker(accept: string) {
+    if (!fileInputRef.current) {
+      return;
+    }
+
+    fileInputRef.current.accept = accept;
+    fileInputRef.current.click();
+  }
+
   return (
     <div className="composer-wrap">
       {replyTo || editing ? (
@@ -75,6 +100,13 @@ export function MessageInput({
         </div>
       ) : null}
       <form className="message-input" onSubmit={submit}>
+        <input
+          ref={fileInputRef}
+          className="hidden-file-input"
+          type="file"
+          multiple
+          onChange={(event) => handleFiles(event.target.files)}
+        />
         <div className="composer-menu-wrap">
           <button
             className="icon-button"
@@ -87,18 +119,21 @@ export function MessageInput({
           </button>
           {showMediaMenu ? (
             <div className="composer-menu">
-              {(["image", "video", "document", "audio"] as const).map((type) => (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => {
-                    setShowMediaMenu(false);
-                    onMediaPlaceholder(type);
-                  }}
-                >
-                  {type}
-                </button>
-              ))}
+              <button type="button" onClick={() => openFilePicker("image/*")}>
+                <Image size={15} /> Gallery photos
+              </button>
+              <button type="button" onClick={() => openFilePicker("image/*,video/*")}>
+                <Camera size={15} /> Gallery media
+              </button>
+              <button type="button" onClick={() => openFilePicker("video/*")}>
+                <Video size={15} /> Video
+              </button>
+              <button type="button" onClick={() => openFilePicker("audio/*")}>
+                <FileAudio size={15} /> Audio
+              </button>
+              <button type="button" onClick={() => openFilePicker("*/*")}>
+                <FileText size={15} /> Document
+              </button>
             </div>
           ) : null}
         </div>

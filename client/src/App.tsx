@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Socket } from "socket.io-client";
 import type { CallState, ChatUser, Conversation, Message, MessageStatus } from "./types";
-import { api, clearToken, getToken, setToken, type AuthMode } from "./lib/api";
+import { api, clearToken, getMediaTypeFromFile, getToken, setToken, type AuthMode } from "./lib/api";
 import { createChatSocket } from "./lib/socket";
 import { getConversationPeer, getConversationTitle } from "./lib/chat";
 import { AuthPanel } from "./components/AuthPanel";
@@ -327,32 +327,36 @@ export default function App() {
     });
   }
 
-  async function sendMediaPlaceholder(type: "image" | "video" | "document" | "audio") {
+  async function sendFiles(files: File[]) {
     if (!selectedConversation) {
       return;
     }
 
-    try {
-      const media = await api.createMediaPlaceholder({
-        file_name: `demo-${type}`,
-        mime_type: type === "document" ? "application/pdf" : `${type}/demo`,
-        size: 0,
-        type
-      });
-      const { message } = await api.sendMessage(selectedConversation.id, {
-        type,
-        body: `${type} placeholder (${media.media.status})`,
-        media_url: `https://example.com/${media.media.id}`,
-        media_mime_type: type === "document" ? "application/pdf" : `${type}/demo`,
-        media_size: 0,
-        reply_to_message_id: replyTo?.id || null
-      });
-      setMessages((previous) => appendMessage(previous, message));
-      setReplyTo(null);
-      await refreshConversations();
-    } catch (error) {
-      setError((error as Error).message);
+    for (const file of files) {
+      try {
+        if (file.size > 20 * 1024 * 1024) {
+          setError(`${file.name} is larger than 20MB.`);
+          continue;
+        }
+
+        const upload = await api.uploadMedia(file);
+        const media = upload.media;
+        const { message } = await api.sendMessage(selectedConversation.id, {
+          type: getMediaTypeFromFile(file),
+          body: file.name,
+          media_url: media.public_url,
+          media_mime_type: media.mime_type,
+          media_size: media.size,
+          reply_to_message_id: replyTo?.id || null
+        });
+        setMessages((previous) => appendMessage(previous, message));
+      } catch (error) {
+        setError((error as Error).message);
+      }
     }
+
+    setReplyTo(null);
+    await refreshConversations();
   }
 
   async function forwardMessage(message: Message) {
@@ -690,7 +694,7 @@ export default function App() {
                   setEditingMessage(null);
                 }}
                 onSend={sendMessage}
-                onMediaPlaceholder={sendMediaPlaceholder}
+                onFilesSelected={sendFiles}
                 onTypingStart={() => emitTyping(true)}
                 onTypingStop={() => emitTyping(false)}
               />

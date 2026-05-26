@@ -20,6 +20,7 @@ const { registerChatSocket } = require("./services/chat-socket.service");
 
 const app = express();
 const server = http.createServer(app);
+app.set("trust proxy", 1);
 const localDefaultOrigins = [
   "http://localhost:5173",
   "http://127.0.0.1:5173",
@@ -45,7 +46,7 @@ app.use(
     credentials: true
   })
 );
-app.use(express.json({ limit: "5mb" }));
+app.use(express.json({ limit: "30mb" }));
 
 app.get("/health", (req, res) => {
   res.json({
@@ -57,10 +58,10 @@ app.get("/health", (req, res) => {
 app.use("/api/chat-auth", chatAuthRoutes);
 app.use("/api/chat/users", requireChatAuth, chatUserRoutes);
 app.use("/api/chat/conversations", requireChatAuth, chatConversationRoutes);
-app.use("/api/chat", requireChatAuth, chatMessageRoutes);
 app.use("/api/chat/calls", requireChatAuth, chatCallRoutes);
-app.use("/api/chat/media", requireChatAuth, chatMediaRoutes);
+app.use("/api/chat/media", chatMediaRoutes);
 app.use("/api/chat/admin", requireChatAuth, requireChatAdmin, chatAdminRoutes);
+app.use("/api/chat", requireChatAuth, chatMessageRoutes);
 
 const clientDistPath = path.resolve(__dirname, "../../client/dist");
 
