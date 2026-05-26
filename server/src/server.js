@@ -22,7 +22,8 @@ const app = express();
 const server = http.createServer(app);
 const localDefaultOrigins = [
   "http://localhost:5173",
-  "http://127.0.0.1:5173"
+  "http://127.0.0.1:5173",
+  "https://chatapp.yogeshaihub.in"
 ];
 const configuredOrigins = (process.env.CLIENT_URL || "")
   .split(",")

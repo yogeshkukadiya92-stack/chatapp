@@ -125,14 +125,27 @@ This repo is prepared for a single Railway service. Railway uses the included `D
    ```bash
    NODE_ENV=production
    JWT_SECRET=replace-with-a-strong-secret
-   CLIENT_URL=https://your-railway-domain.up.railway.app
+   CLIENT_URL=https://chatapp.yogeshaihub.in
    SUPABASE_URL=
    SUPABASE_SERVICE_ROLE_KEY=
    ```
 
    Railway provides `PORT` automatically, so do not hardcode it unless Railway specifically asks for it.
 
-5. After Railway gives the public domain, update `CLIENT_URL` to that exact domain and redeploy. This lets Socket.IO accept the production browser origin.
+5. In Railway, add `chatapp.yogeshaihub.in` under the service's Public Networking custom domains. Railway will show DNS records to create in Cloudflare.
+
+6. In Cloudflare DNS for `yogeshaihub.in`, create the records Railway gives you. For a normal subdomain this is usually:
+
+   ```bash
+   Type: CNAME
+   Name: chatapp
+   Target: the Railway CNAME target shown in Railway
+   Proxy: DNS only or Proxied according to Railway's verification status
+   ```
+
+   If Railway also shows a TXT verification record, add that TXT record too.
+
+7. Redeploy after `CLIENT_URL` is set. This lets Socket.IO accept the production browser origin.
 
 For Railway single-service hosting, the web client does not need `VITE_API_BASE_URL` or `VITE_SOCKET_URL`; it defaults to same-origin `/api` and the current browser origin. Only set those Vite variables if the web client is hosted separately from the API.
 
